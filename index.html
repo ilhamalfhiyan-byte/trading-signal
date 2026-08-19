@@ -1,1 +1,211 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trading Signal</title>
 
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #0b0f14;
+      color: white;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+    }
+
+    .header p {
+      color: #8b949e;
+      margin-top: 5px;
+    }
+
+    .card {
+      background: #151b23;
+      border: 1px solid #252d38;
+      border-radius: 18px;
+      padding: 25px;
+      margin-bottom: 18px;
+    }
+
+    .pair {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 25px;
+    }
+
+    .pair strong {
+      font-size: 20px;
+    }
+
+    .timeframe {
+      color: #8b949e;
+    }
+
+    .signal {
+      text-align: center;
+      padding: 25px;
+      border-radius: 15px;
+      background: #10251a;
+      border: 1px solid #1d6b3a;
+    }
+
+    .signal-title {
+      color: #55e889;
+      font-size: 30px;
+      font-weight: bold;
+    }
+
+    .price {
+      font-size: 24px;
+      margin-top: 10px;
+    }
+
+    .status {
+      color: #8b949e;
+      margin-top: 10px;
+    }
+
+    .indicators {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .indicator {
+      flex: 1;
+      background: #0d131a;
+      padding: 15px 5px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .history-title {
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+
+    .history {
+      display: flex;
+      justify-content: space-between;
+      padding: 15px 0;
+      border-bottom: 1px solid #252d38;
+    }
+
+    .buy {
+      color: #55e889;
+      font-weight: bold;
+    }
+
+    .sell {
+      color: #ff5c67;
+      font-weight: bold;
+    }
+
+    .footer {
+      text-align: center;
+      color: #68717d;
+      font-size: 12px;
+      margin-top: 25px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <div class="header">
+      <h1>TRADING SIGNAL</h1>
+      <p>MT5 Signal Dashboard</p>
+    </div>
+
+    <div class="card">
+
+      <div class="pair">
+        <strong>XAUUSD</strong>
+        <span class="timeframe">M15</span>
+      </div>
+
+      <div class="signal">
+        <div class="signal-title">POTENSI BUY</div>
+
+        <div class="price">
+          3,400.00
+        </div>
+
+        <div class="status">
+          Menunggu sinyal dari MT5
+        </div>
+      </div>
+
+      <div class="indicators">
+
+        <div class="indicator">
+          EMA<br>
+          <span class="buy">BULLISH</span>
+        </div>
+
+        <div class="indicator">
+          RSI<br>
+          <span class="buy">BUY</span>
+        </div>
+
+        <div class="indicator">
+          MACD<br>
+          <span class="buy">BUY</span>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="card">
+
+      <div class="history-title">
+        Riwayat Sinyal
+      </div>
+
+      <div class="history">
+        <span class="buy">BUY</span>
+        <span>XAUUSD</span>
+        <span>M15</span>
+        <span>00:15</span>
+      </div>
+
+      <div class="history">
+        <span class="sell">SELL</span>
+        <span>XAUUSD</span>
+        <span>M15</span>
+        <span>23:45</span>
+      </div>
+
+    </div>
+
+    <div class="footer">
+      Trading Signal • Data akan terhubung ke MT5
+    </div>
+
+  </div>
+
+</body>
+</html>
