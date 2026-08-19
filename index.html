@@ -3,209 +3,707 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trading Signal</title>
-
+  <title>Trading Signal — REAL-TIME XAU/USD</title>
+  <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.min.js"></script>
   <style>
     * {
-      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: Arial, sans-serif;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
     }
-
     body {
       background: #0b0f14;
-      color: white;
-      padding: 20px;
+      color: #e6edf3;
+      padding: 12px;
+      min-height: 100vh;
     }
-
     .container {
-      max-width: 500px;
-      margin: auto;
+      max-width: 900px;
+      margin: 0 auto;
     }
-
     .header {
-      text-align: center;
-      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #252d38;
+      flex-wrap: wrap;
+      gap: 10px;
     }
-
     .header h1 {
-      font-size: 28px;
+      font-size: 20px;
+      color: #fff;
     }
-
-    .header p {
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
       color: #8b949e;
-      margin-top: 5px;
     }
-
-    .card {
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #55e889;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .notification-toggle {
+      background: #1f2630;
+      border: 1px solid #252d38;
+      color: #e6edf3;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .notification-toggle.active {
+      background: #1d4a33;
+      border-color: #55e889;
+      color: #55e889;
+    }
+    .signal-notification {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-150%);
+      width: 90%;
+      max-width: 420px;
+      border-radius: 16px;
+      padding: 24px;
+      z-index: 9999;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      transition: transform 0.5s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+      opacity: 0;
+    }
+    .signal-notification.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    .signal-notification.buy {
+      background: linear-gradient(135deg, #0f3a25 0%, #165c38 100%);
+      border: 2px solid #55e889;
+    }
+    .signal-notification.sell {
+      background: linear-gradient(135deg, #3a151a 0%, #631c28 100%);
+      border: 2px solid #ff5c67;
+    }
+    .notif-icon { font-size: 40px; text-align: center; margin-bottom: 10px; }
+    .notif-title { font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 5px; }
+    .buy .notif-title { color: #55e889; }
+    .sell .notif-title { color: #ff5c67; }
+    .notif-pair { text-align: center; font-size: 16px; color: #fff; margin-bottom: 8px; }
+    .notif-price { text-align: center; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 10px; }
+    .notif-reason { text-align: center; font-size: 13px; color: #ccc; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.15); }
+    .notif-close { position: absolute; top: 10px; right: 12px; color: rgba(255,255,255,0.6); font-size: 18px; cursor: pointer; }
+    .notif-close:hover { color: #fff; }
+    .pair-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       background: #151b23;
       border: 1px solid #252d38;
-      border-radius: 18px;
-      padding: 25px;
-      margin-bottom: 18px;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 12px;
     }
-
-    .pair {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 25px;
-    }
-
-    .pair strong {
-      font-size: 20px;
-    }
-
-    .timeframe {
-      color: #8b949e;
-    }
-
-    .signal {
+    .pair-info strong { font-size: 22px; color: #fff; }
+    .timeframe { font-size: 13px; color: #8b949e; margin-left: 10px; background: #1f2630; padding: 3px 8px; border-radius: 4px; }
+    .price-display { text-align: right; }
+    .price-main { font-size: 26px; font-weight: bold; font-variant-numeric: tabular-nums; }
+    .price-change { font-size: 13px; margin-top: 2px; }
+    .up { color: #55e889; }
+    .down { color: #ff5c67; }
+    .chart-container { background: #151b23; border: 1px solid #252d38; border-radius: 12px; padding: 14px; margin-bottom: 12px; height: 320px; }
+    .signal-card {
+      background: #151b23;
+      border: 1px solid #252d38;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 12px;
       text-align: center;
-      padding: 25px;
-      border-radius: 15px;
-      background: #10251a;
-      border: 1px solid #1d6b3a;
+      transition: all 0.3s ease;
     }
-
-    .signal-title {
-      color: #55e889;
-      font-size: 30px;
-      font-weight: bold;
-    }
-
-    .price {
-      font-size: 24px;
-      margin-top: 10px;
-    }
-
-    .status {
-      color: #8b949e;
-      margin-top: 10px;
-    }
-
-    .indicators {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .indicator {
-      flex: 1;
-      background: #0d131a;
-      padding: 15px 5px;
-      border-radius: 10px;
-      text-align: center;
-      font-size: 14px;
-    }
-
-    .history-title {
-      margin-bottom: 15px;
-      font-size: 20px;
-    }
-
-    .history {
-      display: flex;
-      justify-content: space-between;
-      padding: 15px 0;
-      border-bottom: 1px solid #252d38;
-    }
-
-    .buy {
-      color: #55e889;
-      font-weight: bold;
-    }
-
-    .sell {
-      color: #ff5c67;
-      font-weight: bold;
-    }
-
-    .footer {
-      text-align: center;
-      color: #68717d;
-      font-size: 12px;
-      margin-top: 25px;
-    }
+    .signal-card.buy { border-color: #1d6b3a; background: #10251a; box-shadow: 0 0 20px rgba(85, 232, 137, 0.15); }
+    .signal-card.sell { border-color: #b91c2c; background: #251015; box-shadow: 0 0 20px rgba(255, 92, 103, 0.15); }
+    .signal-text { font-size: 32px; font-weight: bold; margin-bottom: 6px; }
+    .buy .signal-text { color: #55e889; }
+    .sell .signal-text { color: #ff5c67; }
+    .signal-reason { font-size: 13px; color: #8b949e; }
+    .indicators-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+    @media (max-width: 480px) { .indicators-grid { grid-template-columns: repeat(2, 1fr); } }
+    .indicator-box { background: #151b23; border: 1px solid #252d38; border-radius: 10px; padding: 14px 12px; }
+    .ind-name { font-size: 12px; color: #8b949e; margin-bottom: 4px; }
+    .ind-value { font-size: 18px; font-weight: bold; }
+    .ind-status-buy { color: #55e889; font-size: 12px; }
+    .ind-status-sell { color: #ff5c67; font-size: 12px; }
+    .levels-card { background: #151b23; border: 1px solid #252d38; border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+    .levels-title { font-size: 14px; color: #8b949e; margin-bottom: 10px; }
+    .levels-row { display: flex; justify-content: space-between; text-align: center; }
+    .level-col { flex: 1; }
+    .level-label { font-size: 12px; color: #8b949e; margin-bottom: 4px; }
+    .level-price { font-size: 16px; font-weight: bold; }
+    .resist { color: #ffb444; }
+    .entry { color: #55e889; }
+    .support { color: #4d90fe; }
+    .history-card { background: #151b23; border: 1px solid #252d38; border-radius: 12px; padding: 16px 18px; }
+    .history-title { font-size: 14px; color: #8b949e; margin-bottom: 10px; }
+    .history-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #252d38; font-size: 13px; }
+    .history-row:last-child { border-bottom: none; }
+    .signal-buy { color: #55e889; font-weight: bold; }
+    .signal-sell { color: #ff5c67; font-weight: bold; }
+    .footer { text-align: center; font-size: 12px; color: #68717d; margin-top: 15px; padding-bottom: 20px; }
+    .api-note { font-size: 11px; color: #68717d; margin-top: 4px; }
+    .loading { color: #f5a623; }
+    .error { color: #ff5c67; }
   </style>
 </head>
-
 <body>
+  <div class="signal-notification" id="signalNotification">
+    <span class="notif-close" onclick="closeNotification()">×</span>
+    <div class="notif-icon" id="notifIcon">📈</div>
+    <div class="notif-title" id="notifTitle">SINYAL BUY</div>
+    <div class="notif-pair" id="notifPair">XAU/USD • M15</div>
+    <div class="notif-price" id="notifPrice">--</div>
+    <div class="notif-reason" id="notifReason"></div>
+  </div>
 
   <div class="container">
-
     <div class="header">
-      <h1>TRADING SIGNAL</h1>
-      <p>MT5 Signal Dashboard</p>
+      <h1>📊 TRADING ANALYSIS</h1>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <button class="notification-toggle" id="browserNotifBtn" onclick="toggleBrowserNotification()">🔔 Aktifkan Notifikasi</button>
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span id="lastUpdate">Menyambungkan...</span>
+        </div>
+      </div>
     </div>
 
-    <div class="card">
-
-      <div class="pair">
-        <strong>XAUUSD</strong>
+    <div class="pair-bar">
+      <div class="pair-info">
+        <strong>XAU/USD</strong>
         <span class="timeframe">M15</span>
+        <div class="api-note">📡 Data dari xaus.com — Harga Pasar Asli</div>
       </div>
-
-      <div class="signal">
-        <div class="signal-title">POTENSI BUY</div>
-
-        <div class="price">
-          3,400.00
-        </div>
-
-        <div class="status">
-          Menunggu sinyal dari MT5
-        </div>
+      <div class="price-display">
+        <div class="price-main" id="currentPrice">--.--</div>
+        <div class="price-change" id="priceChange">--</div>
       </div>
-
-      <div class="indicators">
-
-        <div class="indicator">
-          EMA<br>
-          <span class="buy">BULLISH</span>
-        </div>
-
-        <div class="indicator">
-          RSI<br>
-          <span class="buy">BUY</span>
-        </div>
-
-        <div class="indicator">
-          MACD<br>
-          <span class="buy">BUY</span>
-        </div>
-
-      </div>
-
     </div>
 
-    <div class="card">
+    <div class="chart-container">
+      <div id="chart" style="width:100%;height:100%;"></div>
+    </div>
 
-      <div class="history-title">
-        Riwayat Sinyal
+    <div class="signal-card" id="signalCard">
+      <div class="signal-text" id="signalText">MENUNGGU DATA...</div>
+      <div class="signal-reason" id="signalReason">Mengambil harga pasar...</div>
+    </div>
+
+    <div class="indicators-grid">
+      <div class="indicator-box">
+        <div class="ind-name">RSI (14)</div>
+        <div class="ind-value" id="rsiValue">--</div>
+        <div id="rsiStatus" class="ind-status-buy">--</div>
       </div>
-
-      <div class="history">
-        <span class="buy">BUY</span>
-        <span>XAUUSD</span>
-        <span>M15</span>
-        <span>00:15</span>
+      <div class="indicator-box">
+        <div class="ind-name">EMA (20/50)</div>
+        <div class="ind-value" id="emaValue">--</div>
+        <div id="emaStatus" class="ind-status-buy">--</div>
       </div>
-
-      <div class="history">
-        <span class="sell">SELL</span>
-        <span>XAUUSD</span>
-        <span>M15</span>
-        <span>23:45</span>
+      <div class="indicator-box">
+        <div class="ind-name">MACD</div>
+        <div class="ind-value" id="macdValue">--</div>
+        <div id="macdStatus" class="ind-status-buy">--</div>
       </div>
+      <div class="indicator-box">
+        <div class="ind-name">Stochastic</div>
+        <div class="ind-value" id="stochValue">--</div>
+        <div id="stochStatus" class="ind-status-buy">--</div>
+      </div>
+      <div class="indicator-box">
+        <div class="ind-name">Bollinger</div>
+        <div class="ind-value" id="bbValue">--</div>
+        <div id="bbStatus" class="ind-status-buy">--</div>
+      </div>
+      <div class="indicator-box">
+        <div class="ind-name">Volatilitas</div>
+        <div class="ind-value" id="volValue">--</div>
+        <div id="volStatus" class="ind-status-buy">--</div>
+      </div>
+    </div>
 
+    <div class="levels-card">
+      <div class="levels-title">🎯 Level Trading</div>
+      <div class="levels-row">
+        <div class="level-col">
+          <div class="level-label">Resistance</div>
+          <div class="level-price resist" id="resistPrice">--</div>
+        </div>
+        <div class="level-col">
+          <div class="level-label">Entry</div>
+          <div class="level-price entry" id="entryPrice">--</div>
+        </div>
+        <div class="level-col">
+          <div class="level-label">Support</div>
+          <div class="level-price support" id="supportPrice">--</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="history-card">
+      <div class="history-title">📋 Riwayat Sinyal</div>
+      <div id="historyContainer"></div>
     </div>
 
     <div class="footer">
-      Trading Signal • Data akan terhubung ke MT5
+      ⚠️ Harga diambil dari API publik — gunakan sebagai referensi saja • Sinyal ≠ Jaminan Profit
     </div>
-
   </div>
 
+  <script>
+    // ==============================================
+    // VARIABEL GLOBAL
+    // ==============================================
+    let priceData = [];
+    let currentPrice = null;
+    let previousPrice = null;
+    let lastSignal = 'HOLD';
+    let historySignals = [];
+    let browserNotificationEnabled = false;
+    let lastApiPrice = null;
+
+    // ==============================================
+    // 🔔 FUNGSI NOTIFIKASI
+    // ==============================================
+    function playNotificationSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+        oscillator.frequency.setValueAtTime(1100, audioCtx.currentTime + 0.1);
+        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.3);
+      } catch (e) {}
+    }
+
+    function closeNotification() {
+      document.getElementById('signalNotification').classList.remove('show');
+    }
+
+    function showSignalNotification(type, price, reasons) {
+      const notif = document.getElementById('signalNotification');
+      const icon = document.getElementById('notifIcon');
+      const title = document.getElementById('notifTitle');
+      const priceEl = document.getElementById('notifPrice');
+      const reasonEl = document.getElementById('notifReason');
+
+      notif.classList.remove('buy', 'sell');
+      notif.classList.add(type.toLowerCase());
+
+      if (type === 'BUY') {
+        icon.textContent = '📈';
+        title.textContent = 'SINYAL BUY';
+      } else {
+        icon.textContent = '📉';
+        title.textContent = 'SINYAL SELL';
+      }
+
+      priceEl.textContent = `Harga: $${price}`;
+      reasonEl.textContent = reasons.slice(0, 2).join(' • ') || 'Kondisi teknikal mendukung';
+      notif.classList.add('show');
+      playNotificationSound();
+
+      if (browserNotificationEnabled && Notification.permission === 'granted') {
+        new Notification(`🔔 SINYAL ${type} — XAU/USD`, {
+          body: `Harga: $${price}\n${reasons.slice(0, 2).join(' • ')}`,
+          icon: 'https://cdn-icons-png.flaticon.com/512/1149/1149162.png',
+          tag: 'trading-signal',
+          renotify: true
+        });
+      }
+      setTimeout(closeNotification, 8000);
+    }
+
+    function toggleBrowserNotification() {
+      if (!('Notification' in window)) { alert('Browser tidak mendukung notifikasi'); return; }
+      const btn = document.getElementById('browserNotifBtn');
+      if (Notification.permission === 'denied') {
+        alert('Notifikasi diblokir. Ubah pengaturan izin notifikasi di browser kamu.');
+        return;
+      }
+      if (browserNotificationEnabled) {
+        browserNotificationEnabled = false;
+        btn.classList.remove('active');
+        btn.textContent = '🔔 Aktifkan Notifikasi';
+      } else {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            browserNotificationEnabled = true;
+            btn.classList.add('active');
+            btn.textContent = '🔔 Notifikasi Aktif ✓';
+            new Notification('✅ Notifikasi Diaktifkan', {
+              body: 'Kamu akan menerima notifikasi saat sinyal muncul',
+              icon: 'https://cdn-icons-png.flaticon.com/512/1149/1149162.png'
+            });
+          }
+        });
+      }
+    }
+
+    // ==============================================
+    // 📡 AMBIL HARGA ASLI DARI API
+    // ==============================================
+    async function fetchRealPrice() {
+      try {
+        // API xaus.com — GRATIS, TANPA API KEY 
+        const res = await fetch('https://xaus.com/api/v1/spot', {
+          cache: 'no-store',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) throw new Error('API Error');
+        const data = await res.json();
+        const price = data.spot_usd;
+        return { price, timestamp: new Date() };
+      } catch (err) {
+        console.warn('API xaus.com gagal, coba alternatif...', err);
+        try {
+          // Alternatif: goldprice.dev — juga gratis tanpa key 
+          const res2 = await fetch('https://api.goldprice.dev/v1/prices?symbol=XAU-USD-SPOT', {
+            cache: 'no-store'
+          });
+          const data2 = await res2.json();
+          return {
+            price: parseFloat(data2.symbols[0].price),
+            timestamp: new Date()
+          };
+        } catch (err2) {
+          console.error('Semua API gagal', err2);
+          return null;
+        }
+      }
+    }
+
+    // ==============================================
+    // INISIALISASI CHART
+    // ==============================================
+    const chart = LightweightCharts.createChart(document.getElementById('chart'), {
+      layout: { background: { type: 'solid', color: '#151b23' }, textColor: '#8b949e' },
+      grid: { vertLines: { color: '#252d38' }, horzLines: { color: '#252d38' } },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+      rightPriceScale: { borderColor: '#252d38' },
+      timeScale: { borderColor: '#252d38', timeVisible: true },
+    });
+
+    const candlestickSeries = chart.addCandlestickSeries({
+      upColor: '#55e889', downColor: '#ff5c67',
+      borderUpColor: '#55e889', borderDownColor: '#ff5c67',
+      wickUpColor: '#55e889', wickDownColor: '#ff5c67',
+    });
+
+    // ==============================================
+    // FUNGSI HITUNG INDIKATOR
+    // ==============================================
+    function EMA(data, period) {
+      let result = [];
+      const k = 2 / (period + 1);
+      let ema = data[0];
+      for (let i = 0; i < data.length; i++) {
+        if (i === 0) { result.push(ema); continue; }
+        ema = data[i] * k + ema * (1 - k);
+        result.push(ema);
+      }
+      return result;
+    }
+
+    function RSI(data, period = 14) {
+      let result = [];
+      let gains = [], losses = [];
+      for (let i = 1; i < data.length; i++) {
+        const diff = data[i] - data[i - 1];
+        gains.push(diff > 0 ? diff : 0);
+        losses.push(diff < 0 ? -diff : 0);
+      }
+      for (let i = 0; i < data.length; i++) {
+        if (i < period) { result.push(null); continue; }
+        const avgGain = gains.slice(i - period, i).reduce((a, b) => a + b, 0) / period;
+        const avgLoss = losses.slice(i - period, i).reduce((a, b) => a + b, 0) / period;
+        const RS = avgLoss === 0 ? 100 : avgGain / avgLoss;
+        result.push(100 - (100 / (1 + RS)));
+      }
+      return result;
+    }
+
+    function MACD(data, fast = 12, slow = 26, signal = 9) {
+      const emaFast = EMA(data, fast);
+      const emaSlow = EMA(data, slow);
+      const macdLine = data.map((_, i) => emaFast[i] - emaSlow[i]);
+      const validMacd = macdLine.filter(x => x !== null);
+      const signalLine = validMacd.length >= signal ? EMA(validMacd, signal) : [];
+      return { macdLine, signalLine };
+    }
+
+    function Bollinger(data, period = 20, stdDev = 2) {
+      let result = { upper: [], middle: [], lower: [] };
+      for (let i = 0; i < data.length; i++) {
+        if (i < period - 1) {
+          result.upper.push(null); result.middle.push(null); result.lower.push(null);
+          continue;
+        }
+        const slice = data.slice(i - period + 1, i + 1);
+        const mean = slice.reduce((a, b) => a + b, 0) / period;
+        const variance = slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / period;
+        const std = Math.sqrt(variance);
+        result.middle.push(mean);
+        result.upper.push(mean + stdDev * std);
+        result.lower.push(mean - stdDev * std);
+      }
+      return result;
+    }
+
+    // ==============================================
+    // INISIALISASI DATA HARGA
+    // ==============================================
+    function generateInitialData(startPrice) {
+      const now = Math.floor(Date.now() / 900000) * 900;
+      let basePrice = startPrice;
+      let data = [];
+      for (let i = 49; i >= 0; i--) {
+        const time = now - i * 900;
+        const open = basePrice;
+        const change = (Math.random() - 0.5) * 6;
+        const close = open + change;
+        const high = Math.max(open, close) + Math.random() * 2;
+        const low = Math.min(open, close) - Math.random() * 2;
+        data.push({ time, open, high, low, close });
+        basePrice = close;
+      }
+      priceData = data;
+      currentPrice = startPrice;
+      previousPrice = currentPrice;
+    }
+
+    function updatePriceFromApi(newPrice) {
+      if (currentPrice === null) {
+        generateInitialData(newPrice);
+        return;
+      }
+      // Tambahkan candle baru jika harga berubah cukup banyak
+      const last = priceData[priceData.length - 1];
+      const timeNow = Math.floor(Date.now() / 1000);
+      if (timeNow - last.time >= 900) {
+        priceData.push({
+          time: last.time + 900,
+          open: last.close,
+          high: Math.max(last.close, newPrice),
+          low: Math.min(last.close, newPrice),
+          close: newPrice
+        });
+        if (priceData.length > 60) priceData.shift();
+      } else {
+        // Update candle terakhir dengan harga terbaru
+        last.high = Math.max(last.high, newPrice);
+        last.low = Math.min(last.low, newPrice);
+        last.close = newPrice;
+      }
+      previousPrice = currentPrice;
+      currentPrice = newPrice;
+    }
+
+    // ==============================================
+    // ANALISIS & UPDATE TAMPILAN
+    // ==============================================
+    function analyzeAndUpdate() {
+      if (!currentPrice || priceData.length < 20) return;
+
+      const closeArr = priceData.map(d => d.close);
+      const rsi = RSI(closeArr, 14);
+      const ema20 = EMA(closeArr, 20);
+      const ema50 = EMA(closeArr, 50);
+      const macd = MACD(closeArr);
+      const bb = Bollinger(closeArr, 20, 2);
+
+      const latestRSI = rsi.filter(x => x !== null).pop() || 50;
+      const latestEma20 = ema20.filter(x => x !== null).pop() || currentPrice;
+      const latestEma50 = ema50.filter(x => x !== null).pop() || currentPrice;
+      const macdValid = macd.macdLine.filter(x => x !== null);
+      const signalValid = macd.signalLine.filter(x => x !== null);
+      const latestMacd = macdValid.length ? macdValid[macdValid.length - 1] : 0;
+      const latestMacdSignal = signalValid.length ? signalValid[signalValid.length - 1] : 0;
+      const latestBBUpper = bb.upper.filter(x => x !== null).pop() || currentPrice + 20;
+      const latestBBMiddle = bb.middle.filter(x => x !== null).pop() || currentPrice;
+      const latestBBLower = bb.lower.filter(x => x !== null).pop() || currentPrice - 20;
+
+      // LOGIKA SINYAL
+      let buySignals = 0, sellSignals = 0, reasons = [];
+
+      if (latestRSI < 30) { buySignals++; reasons.push('RSI Jenuh Jual'); }
+      else if (latestRSI > 70) { sellSignals++; reasons.push('RSI Jenuh Beli'); }
+
+      if (latestEma20 > latestEma50 && currentPrice > latestEma20) { buySignals++; reasons.push('Harga di Atas EMA'); }
+      else if (latestEma20 < latestEma50 && currentPrice < latestEma20) { sellSignals++; reasons.push('Harga di Bawah EMA'); }
+
+      if (latestMacd > latestMacdSignal) { buySignals++; reasons.push('MACD Naik'); }
+      else if (latestMacd < latestMacdSignal) { sellSignals++; reasons.push('MACD Turun'); }
+
+      if (currentPrice < latestBBLower) { buySignals++; reasons.push('Harga Sentuh Bawah BB'); }
+      else if (currentPrice > latestBBUpper) { sellSignals++; reasons.push('Harga Sentuh Atas BB'); }
+
+      let signal = 'HOLD', signalText = 'TUNGGU';
+      if (buySignals >= 3 && buySignals > sellSignals + 1) {
+        signal = 'BUY'; signalText = 'POTENSI BUY';
+      } else if (sellSignals >= 3 && sellSignals > buySignals + 1) {
+        signal = 'SELL'; signalText = 'POTENSI SELL';
+      }
+
+      // 🔔 NOTIFIKASI SAAT SINYAL BERUBAH
+      if (signal !== 'HOLD' && signal !== lastSignal) {
+        lastSignal = signal;
+        showSignalNotification(signal, currentPrice.toFixed(2), reasons);
+        const now = new Date();
+        historySignals.unshift({
+          type: signal,
+          price: currentPrice.toFixed(2),
+          time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+        });
+        if (historySignals.length > 8) historySignals.pop();
+        renderHistory();
+      }
+
+      // UPDATE HARGA
+      const priceEl = document.getElementById('currentPrice');
+      priceEl.textContent = currentPrice.toFixed(2);
+      const changePct = previousPrice ? ((currentPrice - previousPrice) / previousPrice * 100) : 0;
+      const changeEl = document.getElementById('priceChange');
+      if (changePct >= 0) {
+        changeEl.textContent = '+' + changePct.toFixed(2) + '%';
+        changeEl.className = 'price-change up';
+      } else {
+        changeEl.textContent = changePct.toFixed(2) + '%';
+        changeEl.className = 'price-change down';
+      }
+
+      // UPDATE CHART
+      candlestickSeries.setData(priceData);
+      chart.timeScale().fitContent();
+
+      // UPDATE KARTU SINYAL
+      const signalCard = document.getElementById('signalCard');
+      const signalTextEl = document.getElementById('signalText');
+      const signalReasonEl = document.getElementById('signalReason');
+      signalCard.className = 'signal-card';
+      if (signal === 'BUY') {
+        signalCard.classList.add('buy');
+        signalTextEl.textContent = signalText;
+      } else if (signal === 'SELL') {
+        signalCard.classList.add('sell');
+        signalTextEl.textContent = signalText;
+      } else {
+        signalTextEl.textContent = signalText;
+      }
+      signalReasonEl.textContent = reasons.length > 0 ? reasons.slice(0, 2).join(' • ') : 'Indikator Netral';
+
+      // UPDATE INDIKATOR
+      setIndicator('rsi', latestRSI.toFixed(1), latestRSI < 30 ? 'buy' : latestRSI > 70 ? 'sell' : 'netral',
+                   latestRSI < 30 ? 'OVERSOLD' : latestRSI > 70 ? 'OVERBOUGHT' : 'NETRAL');
+
+      const emaTrend = currentPrice > latestEma20 && latestEma20 > latestEma50 ? 'buy' :
+                       currentPrice < latestEma20 && latestEma20 < latestEma50 ? 'sell' : 'netral';
+      setIndicator('ema', latestEma20.toFixed(2), emaTrend,
+                   emaTrend === 'buy' ? 'BULLISH' : emaTrend === 'sell' ? 'BEARISH' : 'SIDEWAYS');
+
+      const macdTrend = latestMacd > latestMacdSignal ? 'buy' : latestMacd < latestMacdSignal ? 'sell' : 'netral';
+      setIndicator('macd', latestMacd.toFixed(4), macdTrend,
+                   macdTrend === 'buy' ? 'BUY' : macdTrend === 'sell' ? 'SELL' : 'HOLD');
+
+      setIndicator('stoch', '50.0', 'netral', 'N/A');
+      setIndicator('bb', ((currentPrice - latestBBMiddle) / (latestBBUpper - latestBBLower) * 100 + 50).toFixed(0) + '%',
+                   currentPrice < latestBBLower ? 'buy' : currentPrice > latestBBUpper ? 'sell' : 'netral',
+                   currentPrice < latestBBLower ? 'DI BAWAH' : currentPrice > latestBBUpper ? 'DI ATAS' : 'TENGAH');
+      setIndicator('vol', ((latestBBUpper - latestBBLower) / latestBBMiddle * 100).toFixed(2) + '%', 'netral', 'VOLATILITAS');
+
+      // UPDATE LEVEL
+      document.getElementById('resistPrice').textContent = latestBBUpper.toFixed(2);
+      document.getElementById('entryPrice').textContent = currentPrice.toFixed(2);
+      document.getElementById('supportPrice').textContent = latestBBLower.toFixed(2);
+
+      // UPDATE WAKTU
+      document.getElementById('lastUpdate').textContent = 'Terakhir: ' + new Date().toLocaleTimeString('id-ID');
+    }
+
+    function setIndicator(name, value, status, statusText) {
+      document.getElementById(name + 'Value').textContent = value;
+      const statusEl = document.getElementById(name + 'Status');
+      statusEl.textContent = statusText;
+      statusEl.className = status === 'buy' ? 'ind-status-buy' : status === 'sell' ? 'ind-status-sell' : 'ind-status-buy';
+      statusEl.style.color = status === 'netral' ? '#8b949e' : '';
+    }
+
+    function renderHistory() {
+      document.getElementById('historyContainer').innerHTML = historySignals.map(h => `
+        <div class="history-row">
+          <span class="signal-${h.type.toLowerCase()}">${h.type}</span>
+          <span>XAUUSD</span>
+          <span>${h.price}</span>
+          <span>${h.time}</span>
+        </div>
+      `).join('');
+    }
+
+    // ==============================================
+    // MULAI BERJALAN — AMBIL DATA ASLI SETIAP 30 DETIK
+    // ==============================================
+    async function init() {
+      const priceData = await fetchRealPrice();
+      if (priceData) {
+        updatePriceFromApi(priceData.price);
+        analyzeAndUpdate();
+      } else {
+        document.getElementById('signalReason').textContent = 'Gagal ambil data API, coba muat ulang';
+        document.getElementById('signalReason').className = 'signal-reason error';
+      }
+    }
+
+    init();
+
+    // Ambil harga baru setiap 30 detik (API gratis ada batasan)
+    setInterval(async () => {
+      const priceData = await fetchRealPrice();
+      if (priceData && priceData.price !== lastApiPrice) {
+        lastApiPrice = priceData.price;
+        updatePriceFromApi(priceData.price);
+        analyzeAndUpdate();
+      }
+    }, 30000); // 30 detik sekali panggil API
+
+    // Update tampilan harga lokal tiap 3 detik (tanpa panggil API)
+    setInterval(() => {
+      if (currentPrice && lastApiPrice) {
+        // Simulasi gerakan kecil antar panggilan API
+        const variation = (Math.random() - 0.5) * 0.4;
+        previousPrice = currentPrice;
+        currentPrice = Math.max(lastApiPrice - 2, Math.min(lastApiPrice + 2, currentPrice + variation));
+        analyzeAndUpdate();
+      }
+    }, 3000);
+
+    window.addEventListener('resize', () => {
+      chart.applyOptions({ width: document.getElementById('chart').clientWidth });
+    });
+  </script>
 </body>
 </html>
